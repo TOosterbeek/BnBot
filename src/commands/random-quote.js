@@ -1,6 +1,7 @@
 const {SlashCommandBuilder} = require('@discordjs/builders');
 const createQuoteEmbed = require('../embeds/embed-quote');
 const fs = require('fs');
+const axios = require('axios');
 
 const data = new SlashCommandBuilder()
     .setName('give-quote')
@@ -9,21 +10,13 @@ const data = new SlashCommandBuilder()
 module.exports = {
     data: data,
     async execute(interaction) {
-        const path = `../res/quotes/${interaction.guildId}_quotes.json`;
-        fs.readFile(path, (err, data) => {
-            if(err){
-                // Just assume that when it errors out the file does not exist.
-                interaction.reply('Cannot find any quotes for this server');
+        axios.get(process.env.API_URL + '/quotes/random').then(response => {
+            if(response.status !== 200){
+                interaction.reply({content: 'Could not connect to quote server'});
                 return false;
+            }else{
+                interaction.reply({content: 'Your quote', embeds: [createQuoteEmbed(response.data)]});
             }
-
-            const json = JSON.parse(data);
-            const quoteId = Math.floor(Math.random() * json.length);
-
-            const quote = json[quoteId];
-            let embed = createQuoteEmbed(quote);
-
-            interaction.reply({content: 'Your quote good sir', embeds: [embed]});
         });
     }
 }
